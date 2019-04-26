@@ -6,7 +6,7 @@ from config import chapters as chapters_html
 from config import chapter as chapter_html
 import json
 
-DEBUG = False
+DEBUG = True
 
 
 def search(keyword='绿茵峥嵘'):
@@ -129,14 +129,32 @@ def chapter(url='http://www.b5200.net/97_97046/154614143.html'):
         html = chapter_html
 
     root = etree.HTML(html)
-    p_list = root.xpath("//div[@id='content']/p")
-    result = []
+    content_doc = root.xpath("//div[@id='content']/p")
+    chapters_doc = root.xpath("//div[@class='bottem2']/a[position()=3]/@href")
+    previous_doc = root.xpath("//div[@class='bottem2']/a[position()=2]/@href")
+    next_doc = root.xpath("//div[@class='bottem2']/a[position()=4]/@href")
 
-    if isinstance(p_list, list) is False:
+    result = {
+        'content': [],
+        'chapters': '',
+        'previous': '',
+        'next': ''
+    }
+
+    if isinstance(content_doc, list) is False:
         print('没有找到')
 
-    for p_doc in p_list:
-        result.append(p_doc.text)
+    for row in content_doc:
+        result['content'].append(row.text)
+
+    if isinstance(chapters_doc, list):
+        result['chapters'] = chapters_doc[0]
+
+    if isinstance(previous_doc, list):
+        result['previous'] = previous_doc[0]
+
+    if isinstance(next_doc, list):
+        result['next'] = next_doc[0]
 
     return json.dumps(result, ensure_ascii=False)
 
