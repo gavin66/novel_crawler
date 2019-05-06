@@ -4,9 +4,10 @@ from lxml import etree
 from config import search as search_html
 from config import chapters as chapters_html
 from config import chapter as chapter_html
+from urllib import parse as urlparse
 import json
 
-DEBUG = True
+DEBUG = False
 
 
 def search(keyword='绿茵峥嵘'):
@@ -33,6 +34,7 @@ def search(keyword='绿茵峥嵘'):
     result = []
     for tr_doc in tr_list:
         item = {
+            'id': '',  # 图书 ID
             'name': '',
             'link': '',
             'recent': '',
@@ -58,7 +60,7 @@ def search(keyword='绿茵峥嵘'):
         else:
             continue
         if len(link_doc) > 0:
-            item['link'] = link_doc[0]
+            item['link'] = urlparse.urlsplit(link_doc[0]).path
         if len(recent_doc) > 0:
             item['recent'] = recent_doc[0].text
         if len(recent_link_doc) > 0:
@@ -77,14 +79,14 @@ def search(keyword='绿茵峥嵘'):
     return json.dumps(result, ensure_ascii=False)
 
 
-def chapters(url='http://www.b5200.net/61_61760/'):
+def catalog(path='/97_97046/'):
     """
     小说的所有章节
     :return:
     """
     html = ''
     if DEBUG is False:
-        response = requests.get(url)
+        response = requests.get('http://www.b5200.net/%s' % path)
         if response.ok:
             html = response.text
     else:
@@ -100,7 +102,7 @@ def chapters(url='http://www.b5200.net/61_61760/'):
     for dd_doc in dd_list:
         item = {
             'name': '',
-            'link': ''
+            'link': '',
         }
         name_doc = dd_doc.xpath('./a')
         link_doc = dd_doc.xpath('./a/@href')
@@ -108,53 +110,58 @@ def chapters(url='http://www.b5200.net/61_61760/'):
         if len(name_doc) > 0:
             item['name'] = name_doc[0].text
         if len(link_doc) > 0:
-            item['link'] = link_doc[0]
+            item['link'] = urlparse.urlsplit(link_doc[0]).path
 
         result.append(item)
 
     return json.dumps(result, ensure_ascii=False)
 
 
-def chapter(url='http://www.b5200.net/97_97046/154614143.html'):
+def chapter(path='/97_97046/154425054.html'):
     """
     章节内容
     :return:
     """
     html = ''
     if DEBUG is False:
-        response = requests.get(url)
+        response = requests.get('http://www.b5200.net/%s' % path)
         if response.ok:
             html = response.text
     else:
         html = chapter_html
 
     root = etree.HTML(html)
+    title_doc = root.xpath("//div[@class='bookname']/h1")
     content_doc = root.xpath("//div[@id='content']/p")
-    chapters_doc = root.xpath("//div[@class='bottem2']/a[position()=3]/@href")
+    catalog_doc = root.xpath("//div[@class='bottem2']/a[position()=3]/@href")
     previous_doc = root.xpath("//div[@class='bottem2']/a[position()=2]/@href")
     next_doc = root.xpath("//div[@class='bottem2']/a[position()=4]/@href")
 
     result = {
-        'content': [],
-        'chapters': '',
+        'title': '',
+        'article': [],
+        'catalog': '',
         'previous': '',
         'next': ''
     }
+
+    if isinstance(title_doc, list):
+        result['title'] = title_doc[0].text.strip()
 
     if isinstance(content_doc, list) is False:
         print('没有找到')
 
     for row in content_doc:
-        result['content'].append(row.text)
+        result['article'].append(row.text)
 
-    if isinstance(chapters_doc, list):
-        result['chapters'] = chapters_doc[0]
+    if isinstance(catalog_doc, list):
+        result['catalog'] = urlparse.urlsplit(catalog_doc[0]).path
 
     if isinstance(previous_doc, list):
-        result['previous'] = previous_doc[0]
+        result['previous'] = urlparse.urlsplit(previous_doc[0]).path
 
     if isinstance(next_doc, list):
-        result['next'] = next_doc[0]
+        result['next'] = urlparse.urlsplit(next_doc[0]).path
 
     return json.dumps(result, ensure_ascii=False)
 
