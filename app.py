@@ -34,7 +34,6 @@ def search(keyword='绿茵峥嵘'):
     result = []
     for tr_doc in tr_list:
         item = {
-            'id': '',  # 图书 ID
             'name': '',
             'link': '',
             'recent': '',
